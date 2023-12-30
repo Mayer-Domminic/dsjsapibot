@@ -1,18 +1,33 @@
 // Require the necessary discord.js classes
 const { Client, Events, GatewayIntentBits } = require('discord.js');
 const { token } = require('./config.json');
-const dbLogin = require('./mongo-auth.js');
+const MongoAuth = require('./mongo-auth');
 
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-// connects client to mongo database
-mongoModule(client);
+
+// Async function to handle database operations
+async function connectAndHandleDatabase() {
+    const mongoAuth = new MongoAuth();
+
+    // Connects client to mongo database
+    await mongoAuth.connect();
+
+    // Example usage
+    await mongoAuth.saveData("yourCollection", { key: "value" });
+    const data = await mongoAuth.fetchData("yourCollection", { key: "value" });
+    console.log(data);
+
+    // Close connection when done
+    mongoAuth.close();
+}
+
+// Call the async function
+connectAndHandleDatabase().catch(console.error);
 
 // When the client is ready, run this code (only once).
-// The distinction between `client: Client<boolean>` and `readyClient: Client<true>` is important for TypeScript developers.
-// It makes some properties non-nullable.
 client.once(Events.ClientReady, readyClient => {
-	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+    console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
 // Log in to Discord with your client's token

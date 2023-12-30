@@ -1,22 +1,67 @@
-const { mongoose } = require("mongoose");
-const { fs } = require('fs');
-const mongoEventFiles = fs.readdirSync("./src/mongoEvents").filter(file => file.endsWith(".js"));
+const { MongoClient } = require('mongodb');
+const config = require('./config.json');
 
-module.exports = (client) => {
-    client.dbLogin = async() => {
-        for (file of mongoEventFiles) {
-            const event = require(`../mongoEvents/${file}`);
-            if (event.once) {
-                mongoose.connection.once(event.name, (...args) => event.execute(...args));
-            } else {
-                mongoose.connection.on(event.name, (...args) => event.execute(...args));
-            }
-        }
-        mongoose.Promise = global.Promise;
-        await mongoose.connect("./config.json",{
-            useFindAndModify: false,
-            useUnifiedTopology: true,
-            useNewUrlParser: true,
-        })
+class MongoAuth {
+  constructor() {
+    this.client = new MongoClient(config.dbToken, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    this.db = null;
+  }
+
+  async connect() {
+    try {
+      await this.client.connect();
+      console.log('Connected to MongoDB');
+      this.db = this.client.db("dsdbOrion"); // Replace with your database name
+    } catch (err) {
+      console.error(err);
     }
+  }
+
+  async saveData(collectionName, data) {
+    try {
+      const collection = this.db.collection(collectionName);
+      await collection.insertOne(data);
+      console.log('Data saved to MongoDB');
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async fetchData(collectionName, query) {
+    try {
+      const collection = this.db.collection(collectionName);
+      return await collection.findOne(query);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async updateData(collectionName, query, newData) {
+    try {
+      const collection = this.db.collection(collectionName);
+      await collection.updateOne(query, { $set: newData });
+      console.log('Data updated in MongoDB');
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async deleteData(collectionName, query) {
+    try {
+      const collection = this.db.collection(collectionName);
+      await collection.deleteOne(query);
+      console.log('Data deleted from MongoDB');
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  close() {
+    this.client.close();
+  }
 }
+
+module.exports = MongoAuth;
