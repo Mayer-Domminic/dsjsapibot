@@ -4,8 +4,7 @@ const config = require('./config.json');
 class MongoAuth {
   constructor() {
     this.client = new MongoClient(config.dbToken, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      // if we wanted specificity
     });
     this.db = null;
   }
