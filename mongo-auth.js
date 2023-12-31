@@ -1,6 +1,5 @@
 const { MongoClient } = require('mongodb');
 const config = require('./config.json');
-
 class MongoAuth {
   constructor() {
     this.client = new MongoClient(config.dbToken, {
@@ -56,6 +55,35 @@ class MongoAuth {
     } catch (err) {
       console.error(err);
     }
+  }
+
+  async addReactionRole(guildId, channelId, messageId, emoji, roleId) {
+    const query = { guildId };
+    const update = {
+      $push: {
+        "reactionRoles": {
+          channelId,
+          messageId,
+          reactions: [{ emoji, roleId }]
+        }
+      }
+    };
+    await this.updateData('guildSettings', query, update, { upsert: true });
+  }
+
+  async removeReactionRole(guildId, channelId, messageId, emoji) {
+    const query = { guildId, "reactionRoles.channelId": channelId, "reactionRoles.messageId": messageId };
+    const update = {
+      $pull: {
+        "reactionRoles.$.reactions": { emoji }
+      }
+    };
+    await this.updateData('guildSettings', query, update);
+  }
+
+  async getReactionRoles(guildId) {
+    const query = { guildId };
+    return await this.fetchData('guildSettings', query);
   }
 
   close() {
